@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>전남과학고 급식</title>
+</head>
+<body>
+
+<h1>전남과학고 오늘의 급식</h1>
+<div id="meal"></div>
+
+<script>
+const API_KEY = "01b8118e8ef64831b80022e40f9317f8";
+
+const today = new Date();
+const y = today.getFullYear();
+const m = String(today.getMonth()+1).padStart(2, "0");
+const d = String(today.getDate()).padStart(2, "0");
+const date = `${y}${m}${d}`;
+
+fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${API_KEY}&Type=json&pIndex=1&pSize=100&ATPT_OFCDC_SC_CODE=Q10&SD_SCHUL_CODE=8490069&MLSV_YMD=${date}`)
+  .then(res => res.json())
+  .then(data => {
+    const meals = data.mealServiceDietInfo?.[1]?.row;
+
+    if (!meals) {
+      document.getElementById("meal").innerText = "급식 없음";
+      return;
+    }
+
+    let html = "";
+
+    meals.forEach(meal => {
+      const menu = meal.DDISH_NM.replace(/<br\/>/g, "\n");
+
+      html += `
+        <h2>${meal.MMEAL_SC_NM}</h2>
+        <pre>${menu}</pre>
+        <hr/>
+      `;
+    });
+
+    document.getElementById("meal").innerHTML = html;
+  })
+  .catch(err => {
+    document.getElementById("meal").innerText = "에러 발생";
+  });
+</script>
+
+</body>
+</html>
