@@ -1,51 +1,410 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>전남과학고 급식</title>
-</head>
-<body>
-
-<h1>전남과학고 오늘의 급식</h1>
-<div id="meal"></div>
-
-<script>
-const API_KEY = "01b8118e8ef64831b80022e40f9317f8";
-
-const today = new Date();
-const y = today.getFullYear();
-const m = String(today.getMonth()+1).padStart(2, "0");
-const d = String(today.getDate()).padStart(2, "0");
-const date = `${y}${m}${d}`;
-
-fetch(`https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${API_KEY}&Type=json&pIndex=1&pSize=100&ATPT_OFCDC_SC_CODE=Q10&SD_SCHUL_CODE=8490069&MLSV_YMD=${date}`)
-  .then(res => res.json())
-  .then(data => {
-    const meals = data.mealServiceDietInfo?.[1]?.row;
-
-    if (!meals) {
-      document.getElementById("meal").innerText = "급식 없음";
-      return;
+  <meta name="theme-color" content="#111827" />
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: rgba(255,255,255,0.88);
+      --text: #111827;
+      --sub: #6b7280;
+      --line: rgba(17,24,39,0.08);
+      --accent: #2563eb;
+      --shadow: 0 10px 30px rgba(0,0,0,0.08);
     }
 
-    let html = "";
+    body.dark {
+      --bg: #0b1020;
+      --card: rgba(17,24,39,0.85);
+      --text: #f9fafb;
+      --sub: #9ca3af;
+      --line: rgba(255,255,255,0.08);
+      --accent: #60a5fa;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
 
-    meals.forEach(meal => {
-      const menu = meal.DDISH_NM.replace(/<br\/>/g, "\n");
+    * {
+      box-sizing: border-box;
+    }
 
-      html += `
-        <h2>${meal.MMEAL_SC_NM}</h2>
-        <pre>${menu}</pre>
-        <hr/>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      background: linear-gradient(180deg, var(--bg), #e5e7eb 120%);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background 0.25s, color 0.25s;
+    }
+
+    body.dark {
+      background: linear-gradient(180deg, #0b1020, #111827 120%);
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    .hero {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(14px);
+      background: rgba(255,255,255,0.55);
+      border-bottom: 1px solid var(--line);
+      margin: -24px -16px 20px;
+      padding: 18px 16px 14px;
+    }
+
+    body.dark .hero {
+      background: rgba(11,16,32,0.6);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      color: var(--sub);
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      border: 0;
+      background: var(--card);
+      color: var(--text);
+      padding: 11px 15px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      border: 1px solid var(--line);
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .status {
+      margin: 18px 2px 12px;
+      color: var(--sub);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .day-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .day-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .day-title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .day-date {
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .meal {
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      margin-top: 14px;
+    }
+
+    .meal:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .meal-name {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 800;
+      color: white;
+      background: var(--accent);
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .menu {
+      white-space: pre-wrap;
+      line-height: 1.75;
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .meta {
+      margin-top: 10px;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .empty {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px 18px;
+      text-align: center;
+      color: var(--sub);
+      box-shadow: var(--shadow);
+    }
+
+    .footer {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    @media (max-width: 520px) {
+      h1 {
+        font-size: 28px;
+      }
+      .day-title {
+        font-size: 20px;
+      }
+      button {
+        flex: 1 1 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>전남과학고 급식</h1>
+      <div class="subtitle">오늘, 내일, 이번 주 급식을 한 번에 볼 수 있음</div>
+      <div class="controls">
+        <button class="primary" onclick="showToday()">오늘</button>
+        <button onclick="showTomorrow()">내일</button>
+        <button onclick="showWeek()">이번 주</button>
+        <button onclick="toggleDarkMode()">다크모드</button>
+        <button onclick="location.reload()">새로고침</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">불러오는 중...</div>
+    <div class="grid" id="app"></div>
+    <div class="footer">홈화면에 추가하면 앱처럼 사용할 수 있음</div>
+  </div>
+
+  <script>
+    const API_KEY = "01b8118e8ef64831b80022e40f9317f8";
+    const ATPT_OFCDC_SC_CODE = "Q10";
+    const SD_SCHUL_CODE = "8490069";
+
+    const app = document.getElementById("app");
+    const statusEl = document.getElementById("status");
+
+    function formatDate(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}${m}${d}`;
+    }
+
+    function displayDate(date) {
+      const y = date.getFullYear();
+      const m = date.getMonth() + 1;
+      const d = date.getDate();
+      const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+      return `${y}.${m}.${d} (${dayNames[date.getDay()]})`;
+    }
+
+    function getMonday(date) {
+      const copy = new Date(date);
+      const day = copy.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      copy.setDate(copy.getDate() + diff);
+      copy.setHours(0, 0, 0, 0);
+      return copy;
+    }
+
+    function cleanMenu(text) {
+      return text
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/\(\d+(\.\d+)*\)/g, "")
+        .replace(/\s+\n/g, "\n")
+        .replace(/\n{2,}/g, "\n")
+        .trim();
+    }
+
+    async function fetchMeal(dateStr) {
+      const url = `https://open.neis.go.kr/hub/mealServiceDietInfo?KEY=${API_KEY}&Type=json&pIndex=1&pSize=100&ATPT_OFCDC_SC_CODE=${ATPT_OFCDC_SC_CODE}&SD_SCHUL_CODE=${SD_SCHUL_CODE}&MLSV_YMD=${dateStr}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data?.mealServiceDietInfo?.[1]?.row || [];
+    }
+
+    function renderDayCard(date, meals) {
+      const titleMap = {
+        "조식": "조식",
+        "중식": "중식",
+        "석식": "석식"
+      };
+
+      if (!meals.length) {
+        return `
+          <div class="day-card">
+            <div class="day-head">
+              <h2 class="day-title">${dateLabel(date)}</h2>
+              <div class="day-date">${displayDate(date)}</div>
+            </div>
+            <div class="empty">등록된 급식이 없음</div>
+          </div>
+        `;
+      }
+
+      const mealsHtml = meals.map(meal => `
+        <div class="meal">
+          <div class="meal-name">${titleMap[meal.MMEAL_SC_NM] || meal.MMEAL_SC_NM}</div>
+          <p class="menu">${escapeHtml(cleanMenu(meal.DDISH_NM || ""))}</p>
+          <div class="meta">${meal.CAL_INFO ? `칼로리: ${escapeHtml(meal.CAL_INFO)}` : ""}</div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="day-card">
+          <div class="day-head">
+            <h2 class="day-title">${dateLabel(date)}</h2>
+            <div class="day-date">${displayDate(date)}</div>
+          </div>
+          ${mealsHtml}
+        </div>
       `;
-    });
+    }
 
-    document.getElementById("meal").innerHTML = html;
-  })
-  .catch(err => {
-    document.getElementById("meal").innerText = "에러 발생";
-  });
-</script>
+    function dateLabel(date) {
+      const today = new Date();
+      const tomorrow = new Date();
+      tomorrow.setDate(today.getDate() + 1);
 
+      const a = formatDate(date);
+      if (a === formatDate(today)) return "오늘 급식";
+      if (a === formatDate(tomorrow)) return "내일 급식";
+      return "급식";
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    async function showToday() {
+      const today = new Date();
+      await renderSingleDay(today, "오늘 급식 불러오는 중...");
+    }
+
+    async function showTomorrow() {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      await renderSingleDay(tomorrow, "내일 급식 불러오는 중...");
+    }
+
+    async function renderSingleDay(date, loadingText) {
+      statusEl.textContent = loadingText;
+      app.innerHTML = "";
+      try {
+        const meals = await fetchMeal(formatDate(date));
+        app.innerHTML = renderDayCard(date, meals);
+        statusEl.textContent = displayDate(date);
+      } catch (e) {
+        statusEl.textContent = "불러오기에 실패함";
+        app.innerHTML = `<div class="empty">급식 데이터를 가져오지 못했음</div>`;
+      }
+    }
+
+    async function showWeek() {
+      statusEl.textContent = "이번 주 급식 불러오는 중...";
+      app.innerHTML = "";
+
+      const monday = getMonday(new Date());
+      const dates = [];
+
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(d);
+      }
+
+      try {
+        const results = await Promise.all(
+          dates.map(async (date) => ({
+            date,
+            meals: await fetchMeal(formatDate(date))
+          }))
+        );
+
+        app.innerHTML = results.map(item => renderDayCard(item.date, item.meals)).join("");
+        statusEl.textContent = `${displayDate(dates[0])} ~ ${displayDate(dates[4])}`;
+      } catch (e) {
+        statusEl.textContent = "불러오기에 실패함";
+        app.innerHTML = `<div class="empty">이번 주 급식을 가져오지 못했음</div>`;
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+      const isDark = document.body.classList.contains("dark");
+      localStorage.setItem("jshs-darkmode", isDark ? "1" : "0");
+    }
+
+    function loadDarkMode() {
+      const saved = localStorage.getItem("jshs-darkmode");
+      if (saved === "1") {
+        document.body.classList.add("dark");
+      }
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+
+    loadDarkMode();
+    showToday();
+  </script>
 </body>
 </html>
