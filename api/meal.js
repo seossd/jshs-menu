@@ -2,12 +2,16 @@ export default async function handler(req, res) {
   const { date } = req.query;
 
   if (!date) {
-    return res.status(400).json({ error: "date가 필요함" });
+    return res.status(400).json({ error: "date 필요" });
   }
 
   const API_KEY = process.env.NEIS_API_KEY;
   const ATPT_OFCDC_SC_CODE = "Q10";
   const SD_SCHUL_CODE = "8490069";
+
+  if (!API_KEY) {
+    return res.status(500).json({ error: "서버에 API 키가 설정되지 않음" });
+  }
 
   const url =
     `https://open.neis.go.kr/hub/mealServiceDietInfo` +
